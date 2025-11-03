@@ -9,6 +9,12 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
+  // Marketplace relationships
+  vendor    Vendor? // User can have one vendor profile
+  cartItems CartItem[] // User's shopping cart items
+  orders    Order[] // User's purchase history
+  reviews   Review[] // Reviews written by user
+
   @@unique([email])
   @@map("user")
 }

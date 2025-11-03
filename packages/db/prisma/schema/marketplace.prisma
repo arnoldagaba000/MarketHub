@@ -1,0 +1,158 @@
+// Vendor Profile - extends User to become a seller
+model Vendor {
+    id          String   @id @default(cuid()) @map("_id")
+    userId      String   @unique // Links to User - one user can have one vendor profile
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    shopName    String // Display name for the shop
+    description String? // Optional shop description
+    logo        String? // Optional logo URL
+    isApproved  Boolean  @default(false) // Admin can approve vendors
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relationships - a vendor can have many products and orders
+    products Product[]
+    orders   Order[]
+
+    @@map("vendor")
+}
+
+// Product Categories - for organizing products
+model Category {
+    id        String   @id @default(cuid()) @map("_id")
+    name      String // e.g., "Electronics", "Clothing"
+    slug      String   @unique // URL-friendly version: "electronics"
+    createdAt DateTime @default(now())
+
+    // Relationships - a category contains many products
+    products Product[]
+
+    @@map("category")
+}
+
+// Products - items for sale
+model Product {
+    id         String   @id @default(cuid()) @map("_id")
+    vendorId   String // Which vendor sells this
+    vendor     Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+    categoryId String // Which category this belongs to
+    category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+    name        String // Product name
+    description String // Product description
+    price       Float // Price in dollars (we'll use Float for simplicity)
+    stock       Int     @default(0) // How many available
+    isActive    Boolean @default(true) // Vendor can deactivate products
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relationships
+    images     ProductImage[]
+    cartItems  CartItem[]
+    orderItems OrderItem[]
+    reviews    Review[]
+
+    // Index for faster queries
+    @@index([vendorId])
+    @@index([categoryId])
+    @@map("product")
+}
+
+// Product Images - products can have multiple images
+model ProductImage {
+    id        String  @id @default(cuid()) @map("_id")
+    productId String
+    product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+    url       String // Image URL (we'll use cloud storage later)
+    order     Int     @default(0) // For sorting images (first image is main)
+
+    @@index([productId])
+    @@map("product_image")
+}
+
+// Shopping Cart Items - what users plan to buy
+model CartItem {
+    id        String  @id @default(cuid()) @map("_id")
+    userId    String // Who owns this cart item
+    user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    productId String // What product
+    product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+    quantity  Int     @default(1) // How many
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // A user can only have one cart item per product
+    @@unique([userId, productId])
+    @@index([userId])
+    @@map("cart_item")
+}
+
+// Order Status Enum
+enum OrderStatus {
+    PENDING // Just created, payment pending
+    CONFIRMED // Payment received, preparing to ship
+    SHIPPED // On the way
+    DELIVERED // Completed successfully
+    CANCELLED // Cancelled by user or vendor
+}
+
+// Orders - completed purchases
+// Note: Each order is for ONE vendor (if user buys from multiple vendors, we create multiple orders)
+model Order {
+    id       String @id @default(cuid()) @map("_id")
+    userId   String // Who placed the order
+    user     User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+    vendorId String // Which vendor fulfills this order
+    vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+
+    status          OrderStatus @default(PENDING)
+    total           Float // Total price for this order
+    shippingAddress String // Where to ship
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relationships
+    items OrderItem[]
+
+    @@index([userId])
+    @@index([vendorId])
+    @@map("order")
+}
+
+// Order Items - individual products in an order
+model OrderItem {
+    id        String  @id @default(cuid()) @map("_id")
+    orderId   String
+    order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    productId String
+    product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+    quantity Int // How many purchased
+    price    Float // Price at time of purchase (important: prices can change!)
+
+    @@index([orderId])
+    @@map("order_item")
+}
+
+// Reviews - customer feedback on products
+model Review {
+    id        String  @id @default(cuid()) @map("_id")
+    userId    String // Who wrote the review
+    user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    productId String // Which product
+    product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+    rating  Int // 1-5 stars
+    comment String? // Optional text review
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // A user can only review a product once
+    @@unique([userId, productId])
+    @@index([productId])
+    @@map("review")
+}

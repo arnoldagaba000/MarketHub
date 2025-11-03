@@ -21,9 +21,9 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@MarketHub/db": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
-    "zod": "catalog:",
-    "@MarketHub/db": "workspace:*"
+    "zod": "catalog:"
   }
 }
