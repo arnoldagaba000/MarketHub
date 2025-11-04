@@ -5,6 +5,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 import type { OrderWhereInput } from "../../../db/prisma/generated/models";
 import { protectedProcedure } from "../index";
+import type { Order } from "../../../db/prisma/generated/client";
 
 /**
  * Order Router - Handles order creation and management
@@ -35,6 +36,65 @@ async function getVendorProfile(userId: string) {
     }
 
     return vendor;
+}
+
+/**
+ * Type for cart items with product and vendor information
+ */
+type CartItemWithProduct = Awaited<
+    ReturnType<
+        typeof prisma.cartItem.findMany<{
+            include: {
+                product: {
+                    include: {
+                        vendor: true;
+                    };
+                };
+            };
+        }>
+    >
+>[number];
+
+/**
+ * Validate cart items before order creation
+ */
+function validateCartItems(cartItems: CartItemWithProduct[]) {
+    for (const item of cartItems) {
+        if (!item.product.isActive) {
+            throw new ORPCError("BAD_REQUEST", {
+                message: `Product "${item.product.name}" is no longer available`,
+            });
+        }
+
+        if (!item.product.vendor.isApproved) {
+            throw new ORPCError("BAD_REQUEST", {
+                message: `Vendor for "${item.product.name}" is no longer approved`,
+            });
+        }
+
+        if (item.quantity > item.product.stock) {
+            throw new ORPCError("BAD_REQUEST", {
+                message: `Insufficient stock for "${item.product.name}". Only ${item.product.stock} available.`,
+            });
+        }
+    }
+}
+
+/**
+ * Group cart items by vendor ID
+ */
+function groupCartItemsByVendor(
+    cartItems: CartItemWithProduct[]
+): Map<string, CartItemWithProduct[]> {
+    const vendorGroups = new Map<string, CartItemWithProduct[]>();
+    for (const item of cartItems) {
+        const vendorId = item.product.vendorId;
+        if (!vendorGroups.has(vendorId)) {
+            vendorGroups.set(vendorId, []);
+        }
+        vendorGroups.get(vendorId)?.push(item);
+    }
+    return vendorGroups;
 }
 
 /**
@@ -83,38 +143,13 @@ export const createOrder = protectedProcedure
             }
 
             // Step 2: Validate all items
-            for (const item of cartItems) {
-                if (!item.product.isActive) {
-                    throw new ORPCError("BAD_REQUEST", {
-                        message: `Product "${item.product.name}" is no longer available`,
-                    });
-                }
-
-                if (!item.product.vendor.isApproved) {
-                    throw new ORPCError("BAD_REQUEST", {
-                        message: `Vendor for "${item.product.name}" is no longer approved`,
-                    });
-                }
-
-                if (item.quantity > item.product.stock) {
-                    throw new ORPCError("BAD_REQUEST", {
-                        message: `Insufficient stock for "${item.product.name}". Only ${item.product.stock} available.`,
-                    });
-                }
-            }
+            validateCartItems(cartItems);
 
             // Step 3: Group items by vendor
-            const vendorGroups = new Map<string, typeof cartItems>();
-            for (const item of cartItems) {
-                const vendorId = item.product.vendorId;
-                if (!vendorGroups.has(vendorId)) {
-                    vendorGroups.set(vendorId, []);
-                }
-                vendorGroups.get(vendorId)?.push(item);
-            }
+            const vendorGroups = groupCartItemsByVendor(cartItems);
 
             // Step 4: Create an order for each vendor
-            const createdOrders = [];
+            const createdOrders: Order[] = [];
 
             for (const [vendorId, items] of vendorGroups.entries()) {
                 // Calculate total for this vendor's order
@@ -485,7 +520,7 @@ export const updateOrderStatus = protectedProcedure
         }
 
         // If cancelling, restore stock
-        let updatedOrder;
+        let updatedOrder: Order;
         if (input.status === "CANCELLED") {
             updatedOrder = await prisma.$transaction(async (tx) => {
                 // Restore stock for all items
