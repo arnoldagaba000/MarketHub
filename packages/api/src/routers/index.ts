@@ -1,7 +1,10 @@
 import type { RouterClient } from "@orpc/server";
 import { protectedProcedure, publicProcedure } from "../index";
+import { cartRouter } from "./cart";
 import { categoryRouter } from "./category";
+import { orderRouter } from "./order";
 import { productRouter } from "./product";
+import { reviewRouter } from "./review";
 import { vendorRouter } from "./vendor";
 
 export const appRouter = {
@@ -11,14 +14,23 @@ export const appRouter = {
         user: context.session?.user,
     })),
 
-    // Vendor endpoints - nested under 'vendor' namespace
+    // Vendor endpoints
     vendor: vendorRouter,
 
-    // Product endpoints - nested under 'product' namespace
+    // Product endpoints
     product: productRouter,
 
-    // Category endpoints - nested under 'category' namespace
+    // Category endpoints
     category: categoryRouter,
+
+    // Order processing
+    order: orderRouter,
+
+    // Shopping cart
+    cart: cartRouter,
+
+    // Product reviews
+    review: reviewRouter,
 };
 
 export type AppRouter = typeof appRouter;

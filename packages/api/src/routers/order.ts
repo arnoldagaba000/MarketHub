@@ -3,9 +3,9 @@
 import prisma from "@MarketHub/db";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
+import type { Order } from "../../../db/prisma/generated/client";
 import type { OrderWhereInput } from "../../../db/prisma/generated/models";
 import { protectedProcedure } from "../index";
-import type { Order } from "../../../db/prisma/generated/client";
 
 /**
  * Order Router - Handles order creation and management
