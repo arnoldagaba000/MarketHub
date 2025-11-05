@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/style/noMagicNumbers: Ignore magic numbers */
+
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Filter, Search } from "lucide-react";
@@ -46,14 +48,14 @@ function ProductsPage() {
     // Fetch categories
     const { data: categories } = useQuery({
         queryKey: ["categories"],
-        queryFn: () => orpc.category.listCategories.query(),
+        queryFn: () => orpc.category.listCategories.call(),
     });
 
     // Fetch products with current filters
     const { data: productsData, isLoading } = useQuery({
         queryKey: ["products", searchParams],
         queryFn: () =>
-            orpc.product.listProducts.query({
+            orpc.product.listProducts.call({
                 search: searchParams.search,
                 categoryId: searchParams.category,
                 minPrice: searchParams.minPrice,
@@ -195,7 +197,7 @@ function ProductsPage() {
             {/* Products Grid */}
             {isLoading ? (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {[...Array(8)].map((_, i) => (
+                    {[...new Array(8)].map((_, i) => (
                         <Card key={i}>
                             <Skeleton className="h-48 w-full" />
                             <CardContent className="space-y-2 p-4">
@@ -205,7 +207,8 @@ function ProductsPage() {
                         </Card>
                     ))}
                 </div>
-            ) : productsData?.products.length === 0 ? (
+            ) : // biome-ignore lint/style/noNestedTernary: For simplicity
+            productsData?.products.length === 0 ? (
                 <div className="py-12 text-center">
                     <p className="mb-4 text-muted-foreground">
                         No products found
@@ -232,6 +235,7 @@ function ProductsPage() {
                                 {/* Product Image */}
                                 <div className="aspect-square overflow-hidden">
                                     {product.images[0] ? (
+                                        // biome-ignore lint/correctness/useImageSize: No need for image size
                                         <img
                                             alt={product.name}
                                             className="h-full w-full object-cover"
@@ -281,7 +285,8 @@ function ProductsPage() {
                                         <Badge variant="destructive">
                                             Out of Stock
                                         </Badge>
-                                    ) : product.stock < 10 ? (
+                                    ) : // biome-ignore lint/style/noNestedTernary: For simplicity
+                                    product.stock < 10 ? (
                                         <Badge variant="outline">
                                             Only {product.stock} left
                                         </Badge>
