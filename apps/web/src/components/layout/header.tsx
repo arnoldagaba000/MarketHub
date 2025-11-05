@@ -28,14 +28,14 @@ const Header = () => {
     // Get vendor profile if user is a vendor
     const { data: vendorProfile } = useQuery({
         queryKey: ["vendor-profile"],
-        queryFn: () => orpc.vendor.getMyVendorProfile.query(),
+        queryFn: () => orpc.vendor.getMyVendorProfile.call(),
         enabled: !!session?.data?.user,
     });
 
     // Get cart to show item count
     const { data: cart } = useQuery({
         queryKey: ["cart"],
-        queryFn: () => orpc.cart.getCart.query(),
+        queryFn: () => orpc.cart.getCart.call(),
         enabled: !!session?.data?.user,
     });
 
