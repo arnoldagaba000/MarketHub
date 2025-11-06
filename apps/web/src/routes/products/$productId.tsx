@@ -5,9 +5,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Package, ShoppingCart, Star, Store } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -423,7 +425,141 @@ function ProductDetailPage() {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Review Creation Form */}
+                <ReviewForm productId={productId} />
             </div>
         </div>
+    );
+}
+
+function ReviewForm({ productId }: { productId: string }) {
+    const queryClient = useQueryClient();
+    const [showForm, setShowForm] = useState(false);
+
+    // Check if user can review
+    const { data: canReview } = useQuery({
+        queryKey: ["can-review", productId],
+        queryFn: () => orpc.review.canReviewProduct.call({ productId }),
+    });
+
+    // Create review mutation
+    const createReviewMutation = useMutation({
+        mutationFn: (data: { rating: number; comment?: string }) =>
+            orpc.review.createReview.call({ productId, ...data }),
+        onSuccess: () => {
+            toast.success("Review submitted successfully!");
+            queryClient.invalidateQueries({ queryKey: ["product-reviews", productId] });
+            queryClient.invalidateQueries({ queryKey: ["product", productId] });
+            queryClient.invalidateQueries({ queryKey: ["can-review", productId] });
+            setShowForm(false);
+        },
+        onError: (error) => {
+            toast.error((error as Error).message || "Failed to submit review");
+        },
+    });
+
+    if (!canReview?.canReview) {
+        return null;
+    }
+
+    if (!showForm) {
+        return (
+            <Card>
+                <CardContent className="p-6 text-center">
+                    <Button onClick={() => setShowForm(true)} variant="outline">
+                        Write a Review
+                    </Button>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <h3 className="font-semibold text-lg">Write a Review</h3>
+            </CardHeader>
+            <CardContent>
+                <ReviewFormContent
+                    onSubmit={(data) => {
+                        createReviewMutation.mutate(data);
+                    }}
+                    onCancel={() => setShowForm(false)}
+                    isLoading={createReviewMutation.isPending}
+                />
+            </CardContent>
+        </Card>
+    );
+}
+
+function ReviewFormContent({
+    onSubmit,
+    onCancel,
+    isLoading,
+}: {
+    onSubmit: (data: { rating: number; comment?: string }) => void;
+    onCancel: () => void;
+    isLoading: boolean;
+}) {
+    const [rating, setRating] = useState(0);
+    const [comment, setComment] = useState("");
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (rating < 1 || rating > 5) {
+            toast.error("Please select a rating");
+            return;
+        }
+        onSubmit({ rating, comment: comment.trim() || undefined });
+    };
+
+    return (
+        <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+                <Label>Rating</Label>
+                <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                            key={star}
+                            className="focus:outline-none"
+                            onClick={() => setRating(star)}
+                            type="button"
+                        >
+                            <Star
+                                className={`h-8 w-8 ${
+                                    star <= rating
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "text-muted-foreground"
+                                }`}
+                            />
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <div>
+                <Label htmlFor="review-comment">Comment (optional)</Label>
+                <Textarea
+                    id="review-comment"
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Share your experience with this product..."
+                    rows={4}
+                    value={comment}
+                />
+            </div>
+            <div className="flex gap-2">
+                <Button
+                    disabled={isLoading}
+                    onClick={onCancel}
+                    type="button"
+                    variant="outline"
+                >
+                    Cancel
+                </Button>
+                <Button disabled={isLoading || rating === 0} type="submit">
+                    {isLoading ? "Submitting..." : "Submit Review"}
+                </Button>
+            </div>
+        </form>
     );
 }
