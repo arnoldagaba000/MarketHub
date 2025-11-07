@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
@@ -18,16 +19,26 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BecomeVendorRouteImport } from './routes/become-vendor'
+import { Route as BecomeAdminRouteImport } from './routes/become-admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VendorSettingsRouteImport } from './routes/vendor/settings'
 import { Route as VendorDashboardRouteImport } from './routes/vendor/dashboard'
 import { Route as VendorVendorIdRouteImport } from './routes/vendor/$vendorId'
 import { Route as ProductsProductIdRouteImport } from './routes/products/$productId'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
+import { Route as AdminVendorsRouteImport } from './routes/admin/vendors'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as AdminAdminsRouteImport } from './routes/admin/admins'
 import { Route as VendorProductsNewRouteImport } from './routes/vendor/products/new'
 import { Route as VendorProductsProductIdRouteImport } from './routes/vendor/products/$productId'
 import { Route as VendorOrdersOrderIdRouteImport } from './routes/vendor/orders/$orderId'
 
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -73,6 +84,11 @@ const BecomeVendorRoute = BecomeVendorRouteImport.update({
   path: '/become-vendor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BecomeAdminRoute = BecomeAdminRouteImport.update({
+  id: '/become-admin',
+  path: '/become-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -103,6 +119,26 @@ const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
   path: '/$orderId',
   getParentRoute: () => OrdersRoute,
 } as any)
+const AdminVendorsRoute = AdminVendorsRouteImport.update({
+  id: '/admin/vendors',
+  path: '/admin/vendors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAdminsRoute = AdminAdminsRouteImport.update({
+  id: '/admin/admins',
+  path: '/admin/admins',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VendorProductsNewRoute = VendorProductsNewRouteImport.update({
   id: '/vendor/products/new',
   path: '/vendor/products/new',
@@ -121,6 +157,7 @@ const VendorOrdersOrderIdRoute = VendorOrdersOrderIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/become-admin': typeof BecomeAdminRoute
   '/become-vendor': typeof BecomeVendorRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
@@ -130,6 +167,11 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/vendor/$vendorId': typeof VendorVendorIdRoute
@@ -141,6 +183,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/become-admin': typeof BecomeAdminRoute
   '/become-vendor': typeof BecomeVendorRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
@@ -150,6 +193,11 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/vendor/$vendorId': typeof VendorVendorIdRoute
@@ -162,6 +210,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/become-admin': typeof BecomeAdminRoute
   '/become-vendor': typeof BecomeVendorRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
@@ -171,6 +220,11 @@ export interface FileRoutesById {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/vendor/$vendorId': typeof VendorVendorIdRoute
@@ -184,6 +238,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/become-admin'
     | '/become-vendor'
     | '/cart'
     | '/checkout'
@@ -193,6 +248,11 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/register'
+    | '/verify-email'
+    | '/admin/admins'
+    | '/admin/dashboard'
+    | '/admin/users'
+    | '/admin/vendors'
     | '/orders/$orderId'
     | '/products/$productId'
     | '/vendor/$vendorId'
@@ -204,6 +264,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/become-admin'
     | '/become-vendor'
     | '/cart'
     | '/checkout'
@@ -213,6 +274,11 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/register'
+    | '/verify-email'
+    | '/admin/admins'
+    | '/admin/dashboard'
+    | '/admin/users'
+    | '/admin/vendors'
     | '/orders/$orderId'
     | '/products/$productId'
     | '/vendor/$vendorId'
@@ -224,6 +290,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/become-admin'
     | '/become-vendor'
     | '/cart'
     | '/checkout'
@@ -233,6 +300,11 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/register'
+    | '/verify-email'
+    | '/admin/admins'
+    | '/admin/dashboard'
+    | '/admin/users'
+    | '/admin/vendors'
     | '/orders/$orderId'
     | '/products/$productId'
     | '/vendor/$vendorId'
@@ -245,6 +317,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BecomeAdminRoute: typeof BecomeAdminRoute
   BecomeVendorRoute: typeof BecomeVendorRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
@@ -254,6 +327,11 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
+  AdminAdminsRoute: typeof AdminAdminsRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminVendorsRoute: typeof AdminVendorsRoute
   VendorVendorIdRoute: typeof VendorVendorIdRoute
   VendorDashboardRoute: typeof VendorDashboardRoute
   VendorSettingsRoute: typeof VendorSettingsRoute
@@ -264,6 +342,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -327,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BecomeVendorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/become-admin': {
+      id: '/become-admin'
+      path: '/become-admin'
+      fullPath: '/become-admin'
+      preLoaderRoute: typeof BecomeAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -368,6 +460,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/orders/$orderId'
       preLoaderRoute: typeof OrdersOrderIdRouteImport
       parentRoute: typeof OrdersRoute
+    }
+    '/admin/vendors': {
+      id: '/admin/vendors'
+      path: '/admin/vendors'
+      fullPath: '/admin/vendors'
+      preLoaderRoute: typeof AdminVendorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/admins': {
+      id: '/admin/admins'
+      path: '/admin/admins'
+      fullPath: '/admin/admins'
+      preLoaderRoute: typeof AdminAdminsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/vendor/products/new': {
       id: '/vendor/products/new'
@@ -418,6 +538,7 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BecomeAdminRoute: BecomeAdminRoute,
   BecomeVendorRoute: BecomeVendorRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
@@ -427,6 +548,11 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
+  AdminAdminsRoute: AdminAdminsRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminVendorsRoute: AdminVendorsRoute,
   VendorVendorIdRoute: VendorVendorIdRoute,
   VendorDashboardRoute: VendorDashboardRoute,
   VendorSettingsRoute: VendorSettingsRoute,

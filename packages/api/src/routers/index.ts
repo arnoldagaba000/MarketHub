@@ -1,5 +1,6 @@
 import type { RouterClient } from "@orpc/server";
 import { protectedProcedure, publicProcedure } from "../index";
+import { adminRouter } from "./admin";
 import { cartRouter } from "./cart";
 import { categoryRouter } from "./category";
 import { orderRouter } from "./order";
@@ -31,6 +32,9 @@ export const appRouter = {
 
     // Product reviews
     review: reviewRouter,
+
+    // Admin endpoints
+    admin: adminRouter,
 };
 
 export type AppRouter = typeof appRouter;

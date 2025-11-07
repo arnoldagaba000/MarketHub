@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { User } from "lucide-react";
+import { Mail, User } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -43,6 +44,29 @@ function ProfilePage() {
         queryKey: ["cart"],
         queryFn: () => orpc.cart.getCart.call(),
         enabled: !!session.data?.user,
+    });
+
+    // Fetch admin status
+    const { data: adminStatus } = useQuery({
+        queryKey: ["admin-status"],
+        queryFn: () => orpc.admin.getMyAdminStatus.call(),
+        enabled: !!session.data?.user,
+    });
+
+    // Resend verification email mutation
+    const resendVerificationMutation = useMutation({
+        mutationFn: () => orpc.admin.resendVerificationEmail.call(),
+        onSuccess: (data) => {
+            toast.success("Verification email sent!");
+            if (data.token && process.env.NODE_ENV === "development") {
+                toast.info(`Development token: ${data.token}`);
+            }
+        },
+        onError: (error) => {
+            toast.error(
+                (error as Error).message || "Failed to send verification email"
+            );
+        },
     });
 
     return (
@@ -111,6 +135,34 @@ function ProfilePage() {
                             </p>
                         </div>
                         <div>
+                            <p className="font-medium text-sm">Email Status</p>
+                            {adminStatus?.emailVerified ? (
+                                <Badge className="border-green-500/20 bg-green-500/10 text-green-600">
+                                    Verified
+                                </Badge>
+                            ) : (
+                                <div className="space-y-2">
+                                    <Badge className="border-yellow-500/20 bg-yellow-500/10 text-yellow-600">
+                                        Unverified
+                                    </Badge>
+                                    <Button
+                                        className="mt-2"
+                                        disabled={
+                                            resendVerificationMutation.isPending
+                                        }
+                                        onClick={() =>
+                                            resendVerificationMutation.mutate()
+                                        }
+                                        size="sm"
+                                        variant="outline"
+                                    >
+                                        <Mail className="mr-2 h-4 w-4" />
+                                        Resend Verification Email
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                        <div>
                             <p className="font-medium text-sm">Vendor Status</p>
                             {vendorProfile ? (
                                 <Badge
@@ -131,6 +183,16 @@ function ProfilePage() {
                                 </p>
                             )}
                         </div>
+                        {adminStatus?.isAdmin && (
+                            <div>
+                                <p className="font-medium text-sm">
+                                    Admin Status
+                                </p>
+                                <Badge className="border-purple-500/20 bg-purple-500/10 text-purple-600">
+                                    Admin
+                                </Badge>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -170,6 +232,20 @@ function ProfilePage() {
                         <Link to="/become-vendor">
                             <Button className="w-full" variant="outline">
                                 Become a Vendor
+                            </Button>
+                        </Link>
+                    )}
+                    {adminStatus?.isAdmin && (
+                        <Link to="/admin/dashboard">
+                            <Button className="w-full" variant="outline">
+                                Admin Dashboard
+                            </Button>
+                        </Link>
+                    )}
+                    {!adminStatus?.isAdmin && (
+                        <Link to="/become-admin">
+                            <Button className="w-full" variant="outline">
+                                Become an Admin
                             </Button>
                         </Link>
                     )}

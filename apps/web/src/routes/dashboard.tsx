@@ -1,8 +1,15 @@
 /** biome-ignore-all lint/style/noMagicNumbers: Ignore magic numbers */
 
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { Package, ShoppingBag, Store, TrendingUp } from "lucide-react";
+import {
+    createFileRoute,
+    Link,
+    redirect,
+    useSearch,
+} from "@tanstack/react-router";
+import { Package, Shield, ShoppingBag, Store, TrendingUp } from "lucide-react";
+import { useEffect } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +18,9 @@ import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/dashboard")({
     component: RouteComponent,
+    validateSearch: (search: Record<string, unknown>) => ({
+        error: (search.error as string) || undefined,
+    }),
     beforeLoad: async () => {
         const session = await authClient.getSession();
         if (!session.data) {
@@ -25,9 +35,17 @@ export const Route = createFileRoute("/dashboard")({
 
 function RouteComponent() {
     const { session } = Route.useRouteContext();
+    const search = useSearch({ from: "/dashboard" });
 
     // Fetch user data
     const privateData = useQuery(orpc.privateData.queryOptions());
+
+    // Fetch admin status
+    const { data: adminStatus } = useQuery({
+        queryKey: ["admin-status"],
+        queryFn: () => orpc.admin.getMyAdminStatus.call(),
+        enabled: !!session.data?.user,
+    });
 
     // Fetch vendor profile if exists
     const { data: vendorProfile } = useQuery({
@@ -50,6 +68,13 @@ function RouteComponent() {
         enabled: !!session.data?.user,
     });
 
+    // Show error message if redirected with error
+    useEffect(() => {
+        if (search?.error) {
+            toast.error(search.error);
+        }
+    }, [search?.error]);
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="mb-8">
@@ -58,6 +83,32 @@ function RouteComponent() {
                     Welcome back, {session.data?.user.name}!
                 </p>
             </div>
+
+            {/* Admin Banner */}
+            {adminStatus?.isAdmin && (
+                <Card className="mb-6 border-purple-500/20 bg-purple-500/5">
+                    <CardContent className="flex items-center justify-between p-6">
+                        <div className="flex items-center gap-3">
+                            <Shield className="h-6 w-6 text-purple-600" />
+                            <div>
+                                <h3 className="font-semibold text-lg">
+                                    Administrator Access
+                                </h3>
+                                <p className="text-muted-foreground text-sm">
+                                    You have admin privileges to manage the
+                                    platform
+                                </p>
+                            </div>
+                        </div>
+                        <Link to="/admin/dashboard">
+                            <Button className="bg-purple-600 hover:bg-purple-700">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Go to Admin Dashboard
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Stats Cards */}
             <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -124,6 +175,27 @@ function RouteComponent() {
                     </Card>
                 )}
 
+                {adminStatus?.isAdmin && (
+                    <Card className="border-purple-500/20 bg-purple-500/5">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="font-medium text-sm">
+                                Admin Status
+                            </CardTitle>
+                            <Shield className="h-4 w-4 text-purple-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="font-bold text-2xl">
+                                <Badge className="border-purple-500/20 bg-purple-500/10 text-purple-600">
+                                    Admin
+                                </Badge>
+                            </div>
+                            <p className="text-muted-foreground text-xs">
+                                Platform administrator
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="font-medium text-sm">
@@ -134,9 +206,11 @@ function RouteComponent() {
                     <CardContent>
                         <div className="font-bold text-2xl">
                             {privateData.data ? (
-                                <Badge variant="default">Connected</Badge>
+                                <Badge className="border-green-500/20 bg-green-500/10 text-green-600">
+                                    Connected
+                                </Badge>
                             ) : (
-                                <Badge variant="destructive">
+                                <Badge className="border-red-500/20 bg-red-500/10 text-red-600">
                                     Disconnected
                                 </Badge>
                             )}
@@ -172,6 +246,14 @@ function RouteComponent() {
                                 </Button>
                             </Link>
                         )}
+                        {adminStatus?.isAdmin && (
+                            <Link to="/admin/dashboard">
+                                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                                    <Shield className="mr-2 h-4 w-4" />
+                                    Admin Dashboard
+                                </Button>
+                            </Link>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -188,7 +270,12 @@ function RouteComponent() {
                             </Link>
                             <Link to="/vendor/products/new">
                                 <Button className="w-full" variant="outline">
-                                    Add Product
+                                    Add New Product
+                                </Button>
+                            </Link>
+                            <Link to="/vendor/settings">
+                                <Button className="w-full" variant="outline">
+                                    Vendor Settings
                                 </Button>
                             </Link>
                         </CardContent>
@@ -211,50 +298,6 @@ function RouteComponent() {
                     </Card>
                 )}
             </div>
-
-            {/* Recent Orders */}
-            {ordersData && ordersData.orders.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle>Recent Orders</CardTitle>
-                            <Link to="/orders">
-                                <Button variant="ghost">View All</Button>
-                            </Link>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {ordersData.orders.slice(0, 3).map((order) => (
-                                <div
-                                    className="flex items-center justify-between rounded-lg border p-4"
-                                    key={order.id}
-                                >
-                                    <div>
-                                        <p className="font-medium">
-                                            Order #
-                                            {order.id.slice(-8).toUpperCase()}
-                                        </p>
-                                        <p className="text-muted-foreground text-sm">
-                                            {new Date(
-                                                order.createdAt
-                                            ).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-bold">
-                                            ${order.total.toFixed(2)}
-                                        </p>
-                                        <Badge variant="outline">
-                                            {order.status}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
         </div>
     );
 }

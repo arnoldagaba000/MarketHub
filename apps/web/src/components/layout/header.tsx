@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import { LogOut, Menu, Package, ShoppingCart, Store, User } from "lucide-react";
+import { LogOut, Menu, Package, Shield, ShoppingCart, Store, User } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,13 @@ const Header = () => {
     const { data: vendorProfile } = useQuery({
         queryKey: ["vendor-profile"],
         queryFn: () => orpc.vendor.getMyVendorProfile.call(),
+        enabled: !!session?.data?.user,
+    });
+
+    // Get admin status
+    const { data: adminStatus } = useQuery({
+        queryKey: ["admin-status"],
+        queryFn: () => orpc.admin.getMyAdminStatus.call(),
         enabled: !!session?.data?.user,
     });
 
@@ -80,6 +87,16 @@ const Header = () => {
                         >
                             <Package className="h-4 w-4" />
                             Vendor Dashboard
+                        </Link>
+                    )}
+
+                    {adminStatus?.isAdmin && (
+                        <Link
+                            className="flex items-center gap-1 font-medium text-sm transition-colors hover:text-primary"
+                            to="/admin/dashboard"
+                        >
+                            <Shield className="h-4 w-4" />
+                            Admin
                         </Link>
                     )}
                 </nav>
@@ -167,6 +184,21 @@ const Header = () => {
                                     </DropdownMenuItem>
                                 )}
 
+                                {adminStatus?.isAdmin && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem asChild>
+                                            <Link
+                                                className="cursor-pointer"
+                                                to="/admin/dashboard"
+                                            >
+                                                <Shield className="mr-2 h-4 w-4" />
+                                                Admin Dashboard
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     className="cursor-pointer"
@@ -242,6 +274,18 @@ const Header = () => {
                                                 to="/become-vendor"
                                             >
                                                 Become a Vendor
+                                            </Link>
+                                        )}
+
+                                        {adminStatus?.isAdmin && (
+                                            <Link
+                                                className="font-medium text-lg"
+                                                onClick={() =>
+                                                    setMobileMenuOpen(false)
+                                                }
+                                                to="/admin/dashboard"
+                                            >
+                                                Admin Dashboard
                                             </Link>
                                         )}
 
