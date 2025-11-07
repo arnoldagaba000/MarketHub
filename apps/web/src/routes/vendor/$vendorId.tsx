@@ -9,6 +9,7 @@ import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/vendor/$vendorId")({
     component: VendorProfilePage,
+    // Public route - anyone can view vendor profiles
 });
 
 function VendorProfilePage() {

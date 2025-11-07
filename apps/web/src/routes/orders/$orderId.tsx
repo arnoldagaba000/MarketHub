@@ -1,77 +1,48 @@
 /** biome-ignore-all lint/style/noMagicNumbers: Ignore magic numbers */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Truck } from "lucide-react";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
 
-export const Route = createFileRoute("/vendor/orders/$orderId")({
-    component: VendorOrderDetailPage,
+export const Route = createFileRoute("/orders/$orderId")({
+    component: OrderDetailPage,
     beforeLoad: async ({ params }) => {
         const session = await authClient.getSession();
         if (!session.data) {
             throw new Error("Must be logged in to view orders");
         }
-        // Check if user is a vendor
-        const vendorProfile = await orpc.vendor.getMyVendorProfile.call();
-        if (!vendorProfile) {
-            throw new Error("Must be a vendor to view vendor orders");
-        }
-        // Verify vendor owns this order
+        // Verify user owns this order or is the vendor
         const order = await orpc.order.getOrderById.call({
             orderId: params.orderId,
         });
         if (!order) {
             throw new Error("Order not found");
         }
-        if (order.vendorId !== vendorProfile.id) {
-            throw new Error("You can only view your own orders");
+        // Check if user is the customer or the vendor
+        const vendorProfile = await orpc.vendor.getMyVendorProfile.call();
+        const isCustomer = order.userId === session.data.user.id;
+        const isVendor = vendorProfile && order.vendorId === vendorProfile.id;
+        if (!(isCustomer || isVendor)) {
+            throw new Error("You don't have permission to view this order");
         }
-        return { session, vendorProfile };
+        return { session, order, vendorProfile };
     },
 });
 
-function VendorOrderDetailPage() {
+function OrderDetailPage() {
     const { orderId } = Route.useParams();
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
 
     // Fetch order details
     const { data: order, isLoading } = useQuery({
-        queryKey: ["vendor-order", orderId],
+        queryKey: ["order", orderId],
         queryFn: () => orpc.order.getOrderById.call({ orderId }),
-    });
-
-    // Update order status mutation
-    const updateStatusMutation = useMutation({
-        mutationFn: (
-            status: "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED"
-        ) => orpc.order.updateOrderStatus.call({ orderId, status }),
-        onSuccess: () => {
-            toast.success("Order status updated successfully!");
-            queryClient.invalidateQueries({
-                queryKey: ["vendor-order", orderId],
-            });
-            queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
-        },
-        onError: (error) => {
-            toast.error(
-                (error as Error).message || "Failed to update order status"
-            );
-        },
     });
 
     if (isLoading) {
@@ -89,8 +60,8 @@ function VendorOrderDetailPage() {
         return (
             <div className="container mx-auto px-4 py-8 text-center">
                 <h1 className="mb-4 font-bold text-2xl">Order not found</h1>
-                <Button onClick={() => navigate({ to: "/vendor/dashboard" })}>
-                    Back to Dashboard
+                <Button onClick={() => navigate({ to: "/orders" })}>
+                    Back to Orders
                 </Button>
             </div>
         );
@@ -113,17 +84,17 @@ function VendorOrderDetailPage() {
         }
     };
 
-    const canUpdateStatus =
-        order.status !== "CANCELLED" && order.status !== "DELIVERED";
+    const canCancel =
+        order.status === "PENDING" || order.status === "CONFIRMED";
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8">
             <div className="mb-8">
                 <Button
-                    onClick={() => navigate({ to: "/vendor/dashboard" })}
+                    onClick={() => navigate({ to: "/orders" })}
                     variant="outline"
                 >
-                    ← Back to Dashboard
+                    ← Back to Orders
                 </Button>
             </div>
 
@@ -150,24 +121,22 @@ function VendorOrderDetailPage() {
             <div className="grid gap-6 lg:grid-cols-3">
                 {/* Main Content */}
                 <div className="space-y-6 lg:col-span-2">
-                    {/* Customer Info */}
+                    {/* Vendor Info */}
                     <Card>
                         <CardHeader>
-                            <h2 className="font-semibold text-xl">
-                                Customer Information
-                            </h2>
+                            <h2 className="font-semibold text-xl">Vendor</h2>
                         </CardHeader>
                         <CardContent className="space-y-2">
                             <div>
-                                <p className="font-medium text-sm">Name</p>
+                                <p className="font-medium text-sm">Shop Name</p>
                                 <p className="text-muted-foreground">
-                                    {order.user.name}
+                                    {order.vendor.shopName}
                                 </p>
                             </div>
                             <div>
-                                <p className="font-medium text-sm">Email</p>
+                                <p className="font-medium text-sm">Vendor</p>
                                 <p className="text-muted-foreground">
-                                    {order.user.email}
+                                    {order.vendor.user.name}
                                 </p>
                             </div>
                         </CardContent>
@@ -270,48 +239,11 @@ function VendorOrderDetailPage() {
                                 </div>
                             </div>
 
-                            {canUpdateStatus && (
-                                <div className="space-y-2 border-t pt-4">
-                                    <label className="font-medium text-sm">
-                                        Update Order Status
-                                    </label>
-
-                                    <Select
-                                        onValueChange={(value) => {
-                                            updateStatusMutation.mutate(
-                                                value as
-                                                    | "CONFIRMED"
-                                                    | "SHIPPED"
-                                                    | "DELIVERED"
-                                                    | "CANCELLED"
-                                            );
-                                        }}
-                                        value={order.status}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="PENDING">
-                                                Pending
-                                            </SelectItem>
-                                            <SelectItem value="CONFIRMED">
-                                                Confirmed
-                                            </SelectItem>
-                                            <SelectItem value="SHIPPED">
-                                                Shipped
-                                            </SelectItem>
-                                            <SelectItem value="DELIVERED">
-                                                Delivered
-                                            </SelectItem>
-                                            <SelectItem value="CANCELLED">
-                                                Cancelled
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-muted-foreground text-xs">
-                                        {updateStatusMutation.isPending &&
-                                            "Updating..."}
+                            {canCancel && (
+                                <div className="border-t pt-4">
+                                    <p className="mb-2 text-muted-foreground text-sm">
+                                        You can cancel this order if it hasn't
+                                        been shipped yet.
                                     </p>
                                 </div>
                             )}

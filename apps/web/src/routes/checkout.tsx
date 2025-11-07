@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,11 +12,17 @@ import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/checkout")({
     component: CheckoutPage,
+    beforeLoad: async () => {
+        const { authClient } = await import("@/lib/auth-client");
+        const session = await authClient.getSession();
+        if (!session.data) {
+            throw new Error("Must be logged in to checkout");
+        }
+        return { session };
+    },
 });
 
-const shippingSchema = z.object({
-    address: z.string().min(10, "Address must be at least 10 characters"),
-});
+// Shipping address validation is handled in the form
 
 function CheckoutPage() {
     const navigate = useNavigate();
@@ -109,8 +114,11 @@ function CheckoutPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                        {validation.issues.map((issue, index) => (
-                            <div className="text-sm" key={index}>
+                        {validation.issues.map((issue) => (
+                            <div
+                                className="text-sm"
+                                key={`${issue.cartItemId}-${issue.issue}`}
+                            >
                                 <strong>{issue.productName}:</strong>{" "}
                                 {issue.issue}
                             </div>

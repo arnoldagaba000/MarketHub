@@ -128,6 +128,16 @@ const Header = () => {
                                 <DropdownMenuItem asChild>
                                     <Link
                                         className="cursor-pointer"
+                                        to="/profile"
+                                    >
+                                        <User className="mr-2 h-4 w-4" />
+                                        My Profile
+                                    </Link>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem asChild>
+                                    <Link
+                                        className="cursor-pointer"
                                         to="/orders"
                                     >
                                         <Package className="mr-2 h-4 w-4" />

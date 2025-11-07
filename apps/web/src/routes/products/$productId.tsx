@@ -5,14 +5,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Package, ShoppingCart, Star, Store } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/products/$productId")({
@@ -189,6 +189,7 @@ function ProductDetailPage() {
                                     <Star
                                         className={`h-5 w-5 ${
                                             i <
+                                            // biome-ignore lint/style/noNonNullAssertion: Sure that it exists
                                             Math.round(product.averageRating!)
                                                 ? "fill-yellow-400 text-yellow-400"
                                                 : "text-muted-foreground"
@@ -214,7 +215,7 @@ function ProductDetailPage() {
                         <Package className="h-5 w-5 text-muted-foreground" />
                         {isOutOfStock ? (
                             <Badge variant="destructive">Out of Stock</Badge>
-                        // biome-ignore lint/style/noNestedTernary: For simplicity
+                            // biome-ignore lint/style/noNestedTernary: For simplicity
                         ) : isLowStock ? (
                             <Badge
                                 className="border-orange-500 text-orange-500"
@@ -449,9 +450,13 @@ function ReviewForm({ productId }: { productId: string }) {
             orpc.review.createReview.call({ productId, ...data }),
         onSuccess: () => {
             toast.success("Review submitted successfully!");
-            queryClient.invalidateQueries({ queryKey: ["product-reviews", productId] });
+            queryClient.invalidateQueries({
+                queryKey: ["product-reviews", productId],
+            });
             queryClient.invalidateQueries({ queryKey: ["product", productId] });
-            queryClient.invalidateQueries({ queryKey: ["can-review", productId] });
+            queryClient.invalidateQueries({
+                queryKey: ["can-review", productId],
+            });
             setShowForm(false);
         },
         onError: (error) => {
@@ -459,7 +464,8 @@ function ReviewForm({ productId }: { productId: string }) {
         },
     });
 
-    if (!canReview?.canReview) {
+    // Only show review form if user is logged in and can review
+    if (!(canReview?.canReview)) {
         return null;
     }
 
@@ -482,11 +488,11 @@ function ReviewForm({ productId }: { productId: string }) {
             </CardHeader>
             <CardContent>
                 <ReviewFormContent
+                    isLoading={createReviewMutation.isPending}
+                    onCancel={() => setShowForm(false)}
                     onSubmit={(data) => {
                         createReviewMutation.mutate(data);
                     }}
-                    onCancel={() => setShowForm(false)}
-                    isLoading={createReviewMutation.isPending}
                 />
             </CardContent>
         </Card>
@@ -521,8 +527,8 @@ function ReviewFormContent({
                 <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                         <button
-                            key={star}
                             className="focus:outline-none"
+                            key={star}
                             onClick={() => setRating(star)}
                             type="button"
                         >

@@ -20,12 +20,30 @@ import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/vendor/products/$productId")({
     component: EditProductPage,
-    beforeLoad: async () => {
+    beforeLoad: async ({ params }) => {
         const session = await authClient.getSession();
         if (!session.data) {
             throw new Error("Must be logged in to edit products");
         }
-        return { session };
+        // Check if user is a vendor
+        const vendorProfile = await orpc.vendor.getMyVendorProfile.call();
+        if (!vendorProfile) {
+            throw new Error("Must be a vendor to edit products");
+        }
+        // Verify vendor owns this product
+        const product = await orpc.product.getProduct.call({
+            productId: params.productId,
+        });
+        if (!product) {
+            throw new Error("Product not found");
+        }
+        // Get vendor's products to check ownership
+        const myProducts = await orpc.product.getMyProducts.call();
+        const ownsProduct = myProducts.some((p) => p.id === params.productId);
+        if (!ownsProduct) {
+            throw new Error("You can only edit your own products");
+        }
+        return { session, vendorProfile };
     },
 });
 

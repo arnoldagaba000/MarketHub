@@ -2,7 +2,8 @@ model User {
   id            String    @id @map("_id")
   name          String
   email         String
-  emailVerified Boolean
+  emailVerified Boolean   @default(false)
+  isAdmin       Boolean   @default(false) // Admin role for managing the platform
   image         String?
   createdAt     DateTime
   updatedAt     DateTime

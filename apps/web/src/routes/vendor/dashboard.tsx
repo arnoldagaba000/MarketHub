@@ -1,4 +1,5 @@
-/** biome-ignore-all lint/style/noMagicNumbers: <explanation> */
+/** biome-ignore-all lint/style/noMagicNumbers: Ignore magic numbers */
+
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -24,10 +25,16 @@ export const Route = createFileRoute("/vendor/dashboard")({
         if (!session.data) {
             throw new Error("Must be logged in to access vendor dashboard");
         }
-        return { session };
+        // Check if user is a vendor
+        const vendorProfile = await orpc.vendor.getMyVendorProfile.call();
+        if (!vendorProfile) {
+            throw new Error("Must be a vendor to access this page");
+        }
+        return { session, vendorProfile };
     },
 });
 
+/** biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Dashboard component needs to handle multiple states */
 function VendorDashboardPage() {
     const navigate = useNavigate();
 
@@ -233,7 +240,7 @@ function VendorDashboardPage() {
                                 </Card>
                             ))}
                         </div>
-                    // biome-ignore lint/style/noNestedTernary: For simplicity
+                        // biome-ignore lint/style/noNestedTernary: For simplicity
                     ) : products && products.length > 0 ? (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {products.map((product) => (
@@ -358,7 +365,7 @@ function VendorDashboardPage() {
                                 </Card>
                             ))}
                         </div>
-                    // biome-ignore lint/style/noNestedTernary: For simplicity
+                        // biome-ignore lint/style/noNestedTernary: For simplicity
                     ) : ordersData && ordersData.orders.length > 0 ? (
                         <div className="space-y-4">
                             {ordersData.orders.map((order) => (
@@ -396,8 +403,10 @@ function VendorDashboardPage() {
                                             className="w-full"
                                             onClick={() =>
                                                 navigate({
-                                                    to: "/vendor/dashboard",
-                                                    search: { orderId: order.id },
+                                                    to: "/vendor/orders/$orderId",
+                                                    params: {
+                                                        orderId: order.id,
+                                                    },
                                                 })
                                             }
                                             variant="outline"
@@ -452,7 +461,7 @@ function VendorDashboardPage() {
                             )}
                             <Button
                                 onClick={() =>
-                                    navigate({ to: "/vendor/dashboard" })
+                                    navigate({ to: "/vendor/settings" })
                                 }
                                 variant="outline"
                             >

@@ -1,7 +1,9 @@
+/** biome-ignore-all lint/style/noMagicNumbers: Ignore magic numbers */
+
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Store } from "lucide-react";
+import { Settings } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -11,68 +13,74 @@ import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
 
-export const Route = createFileRoute("/become-vendor")({
-    component: BecomeVendorPage,
+export const Route = createFileRoute("/vendor/settings")({
+    component: VendorSettingsPage,
     beforeLoad: async () => {
         const session = await authClient.getSession();
         if (!session.data) {
-            throw new Error("Must be logged in to become a vendor");
+            throw new Error("Must be logged in to access vendor settings");
         }
-        // Check if user is already a vendor
+        // Check if user is a vendor
         const vendorProfile = await orpc.vendor.getMyVendorProfile.call();
-        if (vendorProfile) {
-            // Redirect to vendor dashboard if already a vendor
-            throw new Error("You are already a vendor");
+        if (!vendorProfile) {
+            throw new Error("Must be a vendor to access vendor settings");
         }
-        return { session };
+        return { session, vendorProfile };
     },
 });
 
-function BecomeVendorPage() {
+function VendorSettingsPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    // Check if user is already a vendor
-    const { data: vendorProfile, isLoading: isChecking } = useQuery({
+    // Fetch vendor profile
+    const { data: vendorProfile, isLoading } = useQuery({
         queryKey: ["vendor-profile"],
         queryFn: () => orpc.vendor.getMyVendorProfile.call(),
     });
 
-    // Create vendor mutation
-    const createVendorMutation = useMutation({
+    // Update vendor mutation
+    const updateVendorMutation = useMutation({
         mutationFn: (data: {
-            shopName: string;
+            shopName?: string;
             description?: string;
             logo?: string;
-        }) => orpc.vendor.becomeVendor.call(data),
+        }) => orpc.vendor.updateVendorProfile.call(data),
         onSuccess: () => {
-            toast.success("Vendor profile created! Awaiting admin approval.");
+            toast.success("Vendor profile updated successfully!");
             queryClient.invalidateQueries({ queryKey: ["vendor-profile"] });
             navigate({ to: "/vendor/dashboard" });
         },
         onError: (error) => {
             toast.error(
-                (error as Error).message || "Failed to create vendor profile"
+                (error as Error).message || "Failed to update vendor profile"
             );
         },
     });
 
     const form = useForm({
         defaultValues: {
-            shopName: "",
-            description: "",
-            logo: "",
+            shopName: vendorProfile?.shopName || "",
+            description: vendorProfile?.description || "",
+            logo: vendorProfile?.logo || "",
         },
         onSubmit: ({ value }) => {
-            createVendorMutation.mutate({
-                shopName: value.shopName,
-                description: value.description || undefined,
-                logo: value.logo || undefined,
+            updateVendorMutation.mutate({
+                shopName:
+                    value.shopName !== vendorProfile?.shopName
+                        ? value.shopName
+                        : undefined,
+                description:
+                    value.description !== vendorProfile?.description
+                        ? value.description
+                        : undefined,
+                logo:
+                    value.logo !== vendorProfile?.logo ? value.logo : undefined,
             });
         },
     });
 
-    if (isChecking) {
+    if (isLoading) {
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="text-center">Loading...</div>
@@ -80,40 +88,31 @@ function BecomeVendorPage() {
         );
     }
 
-    // If already a vendor, redirect to dashboard
-    if (vendorProfile) {
+    if (!vendorProfile) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <Card>
-                    <CardContent className="p-6 text-center">
-                        <Store className="mx-auto mb-4 h-12 w-12 text-primary" />
-                        <h2 className="mb-2 font-bold text-2xl">
-                            You're already a vendor!
-                        </h2>
-                        <p className="mb-4 text-muted-foreground">
-                            You already have a vendor profile. Visit your
-                            dashboard to manage your shop.
-                        </p>
-                        <Button
-                            onClick={() =>
-                                navigate({ to: "/vendor/dashboard" })
-                            }
-                        >
-                            Go to Vendor Dashboard
-                        </Button>
-                    </CardContent>
-                </Card>
+            <div className="container mx-auto px-4 py-8 text-center">
+                <h1 className="mb-4 font-bold text-2xl">
+                    You're not a vendor yet
+                </h1>
+                <p className="mb-4 text-muted-foreground">
+                    Create a vendor profile to access settings
+                </p>
+                <Button onClick={() => navigate({ to: "/become-vendor" })}>
+                    Become a Vendor
+                </Button>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto max-w-2xl px-4 py-8">
-            <div className="mb-8 text-center">
-                <Store className="mx-auto mb-4 h-16 w-16 text-primary" />
-                <h1 className="mb-2 font-bold text-3xl">Become a Vendor</h1>
+        <div className="container mx-auto max-w-3xl px-4 py-8">
+            <div className="mb-8">
+                <div className="mb-2 flex items-center gap-2">
+                    <Settings className="h-6 w-6 text-primary" />
+                    <h1 className="font-bold text-3xl">Vendor Settings</h1>
+                </div>
                 <p className="text-muted-foreground">
-                    Start selling your products on MarketHub
+                    Update your vendor profile information
                 </p>
             </div>
 
@@ -122,10 +121,6 @@ function BecomeVendorPage() {
                     <h2 className="font-semibold text-xl">
                         Vendor Information
                     </h2>
-                    <p className="text-muted-foreground text-sm">
-                        Fill in your shop details to get started. Your profile
-                        will be reviewed by our admin team.
-                    </p>
                 </CardHeader>
                 <CardContent>
                     <form
@@ -140,10 +135,7 @@ function BecomeVendorPage() {
                             {(field) => (
                                 <div className="space-y-2">
                                     <Label htmlFor={field.name}>
-                                        Shop Name{" "}
-                                        <span className="text-destructive">
-                                            *
-                                        </span>
+                                        Shop Name
                                     </Label>
                                     <Input
                                         id={field.name}
@@ -152,8 +144,6 @@ function BecomeVendorPage() {
                                         onChange={(e) =>
                                             field.handleChange(e.target.value)
                                         }
-                                        placeholder="My Awesome Shop"
-                                        required
                                         value={field.state.value}
                                     />
                                     {field.state.meta.errors.map((error) => (
@@ -185,10 +175,6 @@ function BecomeVendorPage() {
                                         rows={4}
                                         value={field.state.value}
                                     />
-                                    <p className="text-muted-foreground text-xs">
-                                        Optional: Describe what makes your shop
-                                        special
-                                    </p>
                                     {field.state.meta.errors.map((error) => (
                                         <p
                                             className="text-destructive text-sm"
@@ -216,9 +202,6 @@ function BecomeVendorPage() {
                                         type="url"
                                         value={field.state.value}
                                     />
-                                    <p className="text-muted-foreground text-xs">
-                                        Optional: URL to your shop logo image
-                                    </p>
                                     {field.state.meta.errors.map((error) => (
                                         <p
                                             className="text-destructive text-sm"
@@ -231,43 +214,33 @@ function BecomeVendorPage() {
                             )}
                         </form.Field>
 
-                        <div className="rounded-lg bg-muted p-4 text-muted-foreground text-sm">
-                            <p className="mb-2 font-medium">
-                                What happens next?
-                            </p>
-                            <ul className="list-disc space-y-1 pl-5">
-                                <li>Your vendor profile will be created</li>
-                                <li>
-                                    Our admin team will review your application
-                                </li>
-                                <li>
-                                    Once approved, you can start adding products
-                                </li>
-                                <li>
-                                    You'll receive an email notification when
-                                    approved
-                                </li>
-                            </ul>
+                        <div className="flex gap-4">
+                            <Button
+                                onClick={() =>
+                                    navigate({ to: "/vendor/dashboard" })
+                                }
+                                type="button"
+                                variant="outline"
+                            >
+                                Cancel
+                            </Button>
+                            <form.Subscribe>
+                                {(state) => (
+                                    <Button
+                                        disabled={
+                                            !state.canSubmit ||
+                                            state.isSubmitting ||
+                                            updateVendorMutation.isPending
+                                        }
+                                        type="submit"
+                                    >
+                                        {updateVendorMutation.isPending
+                                            ? "Updating..."
+                                            : "Update Profile"}
+                                    </Button>
+                                )}
+                            </form.Subscribe>
                         </div>
-
-                        <form.Subscribe>
-                            {(state) => (
-                                <Button
-                                    className="w-full"
-                                    disabled={
-                                        !state.canSubmit ||
-                                        state.isSubmitting ||
-                                        createVendorMutation.isPending
-                                    }
-                                    size="lg"
-                                    type="submit"
-                                >
-                                    {createVendorMutation.isPending
-                                        ? "Creating..."
-                                        : "Create Vendor Profile"}
-                                </Button>
-                            )}
-                        </form.Subscribe>
                     </form>
                 </CardContent>
             </Card>

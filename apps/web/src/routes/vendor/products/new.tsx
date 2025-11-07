@@ -28,7 +28,15 @@ export const Route = createFileRoute("/vendor/products/new")({
         if (!session.data) {
             throw new Error("Must be logged in to create products");
         }
-        return { session };
+        // Check if user is an approved vendor
+        const vendorProfile = await orpc.vendor.getMyVendorProfile.call();
+        if (!vendorProfile) {
+            throw new Error("Must be a vendor to create products");
+        }
+        if (!vendorProfile.isApproved) {
+            throw new Error("Your vendor account is pending approval");
+        }
+        return { session, vendorProfile };
     },
 });
 
@@ -41,12 +49,15 @@ const MIN_IMAGES = 1;
 const MAX_IMAGES = 10;
 
 const productSchema = z.object({
-	name: z.string().min(MIN_NAME_LENGTH).max(MAX_NAME_LENGTH),
-	description: z.string().min(MIN_DESCRIPTION_LENGTH).max(MAX_DESCRIPTION_LENGTH),
-	price: z.number().positive().max(MAX_PRICE),
-	stock: z.number().int().min(0),
-	categoryId: z.string().cuid(),
-	images: z.array(z.string().url()).min(MIN_IMAGES).max(MAX_IMAGES),
+    name: z.string().min(MIN_NAME_LENGTH).max(MAX_NAME_LENGTH),
+    description: z
+        .string()
+        .min(MIN_DESCRIPTION_LENGTH)
+        .max(MAX_DESCRIPTION_LENGTH),
+    price: z.number().positive().max(MAX_PRICE),
+    stock: z.number().int().min(0),
+    categoryId: z.string().cuid(),
+    images: z.array(z.string().url()).min(MIN_IMAGES).max(MAX_IMAGES),
 });
 
 function NewProductPage() {
@@ -82,15 +93,15 @@ function NewProductPage() {
             categoryId: "",
             images: [""],
         },
-		onSubmit: ({ value }) => {
-			const validated = productSchema.parse({
-				...value,
-				price: Number(value.price),
-				stock: Number(value.stock),
-				images: value.images.filter((img) => img.trim() !== ""),
-			});
-			createProductMutation.mutate(validated);
-		},
+        onSubmit: ({ value }) => {
+            const validated = productSchema.parse({
+                ...value,
+                price: Number(value.price),
+                stock: Number(value.stock),
+                images: value.images.filter((img) => img.trim() !== ""),
+            });
+            createProductMutation.mutate(validated);
+        },
     });
 
     const addImageField = () => {
